@@ -1,0 +1,22 @@
+{
+  "name"           : "lockitron"
+, "version"        : "0.0.1"
+, "description"    : "node.js module for the Lockitron "
+, "author": {
+    "name"           : "Marshall Rose"
+  , "email"          : "mrose17@gmail.com"
+  }
+, "repository": {
+    "type"         : "git",
+    "url"          : "https://github.com/TheThingSystem/node-lockitron.git"
+  } 
+, "bugs"           : {
+    "url"          : "https://github.com/TheThingSystem/node-lockitron/issues"
+  }
+, "keywords"       : [ "Lockitron" ]
+, "main"           : "./lockitron.js"
+, "engines": {
+    "node"         : ">=0.8"
+  }
+, "readmeFilename" : "README.md"
+}
