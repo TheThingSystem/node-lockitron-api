@@ -1,6 +1,8 @@
 node-lockitron
 ==============
 
+**STATUS: nearly complete, still working on setDevice**
+
 A node.js module to interface with the [Lockitron lock](https://lockitron.com).
 
 First things first, go to your [Lockitron dashboard](https:/lockitron.com/dashboard) and sign up for API access.
