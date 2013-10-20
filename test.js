@@ -14,7 +14,7 @@ lockitron.on('error', function(err) {
 
   f = function(deviceID) {
     return function(err, results) {
-             if (err) return console.log('motion ' + deviceID + ': ' + err.message);
+             if (err) return console.log('setDevice ' + deviceID + ': ' + err.message);
 
 console.log(results);
            };

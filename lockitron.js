@@ -36,7 +36,9 @@ Lockitron.prototype.setConfig = function(clientID, accessToken) {
 };
 
 Lockitron.prototype.getDevices = function(callback) {
-  return this.invoke('v1/locks', callback);
+  var self = this;
+
+  return this.invoke('v1/locks', self.config, null, callback);
 };
 
 Lockitron.prototype.setDevice = function(deviceID, properties, callback) {
@@ -50,26 +52,22 @@ Lockitron.prototype.setDevice = function(deviceID, properties, callback) {
   if (!properties) properties = { status: 'lock' };
   if (!callback) callback = function(err, results) { if (err) self.logger.error(err.message); else self.logger.info(results); };
 
-  return this.invoke('v1/locks/' + deviceID + '/' + (properties.status || 'lock'), '', function(err, results) {
-    callback(err, results);
-  });
+  return this.invoke('v1/locks/' + deviceID + '/' + (properties.status || 'lock'), null, 
+                     querystring.stringify({ access_token: self.config.access_token }), callback);
 };
 
-Lockitron.prototype.invoke = function(path, body, callback) {
+Lockitron.prototype.invoke = function(path, get, post, callback) {
   var options, self;
 
   self = this;
 
-  if (typeof body === 'function') {
-    callback = body;
-    body = null;
-  }
-
   if (!callback) callback = function(err, results) { if (err) self.logger.error(err.message); else self.logger.info(results); };
 
-  options = url.parse('https://api.lockitron.com/' + path + '?' + querystring.stringify(self.config));
-  options.method = (typeof body === 'string') ? 'POST' : 'GET';
+  options = url.parse('https://api.lockitron.com/' + path + ((!!get) ? ('?' + querystring.stringify(get)) : ''));
+  options.method = (!!post) ? 'POST' : 'GET';
   options.headers = { Accept: 'application/json' };
+console.log('>>> options=' + JSON.stringify(options));
+console.log('>>> post=' + JSON.stringify(post));
   https.request(options, function(response) {
     var content = '', err = null;
 
@@ -95,7 +93,7 @@ Lockitron.prototype.invoke = function(path, body, callback) {
     });
   }).on('error', function(err) {
     self.logger.error('https', { exception: err });
-  }).end(body);
+  }).end(post);
 
   return this;
 };
