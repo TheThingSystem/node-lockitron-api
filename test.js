@@ -14,14 +14,13 @@ lockitron.on('error', function(err) {
 
   f = function(deviceID) {
     return function(err, results) {
-             if (err) return console.log('setDevice ' + deviceID + ': ' + err.message);
+      if (err) return console.log('setDevice ' + deviceID + ': ' + err.message);
 
-console.log(results);
-           };
+      console.log(results);
+    };
   };
 
   for (i = 0; i < results.length; i++) {
-if(i>0)break;
     console.log('device #' + i + ' id=' + results[i].lock.id);
     console.log(JSON.stringify (results[i]));
 

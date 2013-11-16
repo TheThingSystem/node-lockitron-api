@@ -66,8 +66,6 @@ Lockitron.prototype.invoke = function(path, get, post, callback) {
   options = url.parse('https://api.lockitron.com/' + path + ((!!get) ? ('?' + querystring.stringify(get)) : ''));
   options.method = (!!post) ? 'POST' : 'GET';
   options.headers = { Accept: 'application/json' };
-console.log('>>> options=' + JSON.stringify(options));
-console.log('>>> post=' + JSON.stringify(post));
   https.request(options, function(response) {
     var content = '', err = null;
 
