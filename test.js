@@ -6,7 +6,7 @@ lockitron.on('error', function(err) {
   console.log('lockitron error');
   console.error (err);
 }).setConfig('...'
-             '...'
+            ,'...'
 ).getDevices(function(err, results) {
   var f, i;
 

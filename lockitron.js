@@ -67,7 +67,8 @@ Lockitron.prototype.invoke = function(path, get, post, callback) {
   options.method = (!!post) ? 'POST' : 'GET';
   options.headers = { Accept: 'application/json' };
   https.request(options, function(response) {
-    var content = '', err = null;
+    var content = ''
+      , err     = null;
 
     if (response.statusCode != 200) {
       err = new Error('server returned HTTP status code ' + response.statusCode);
