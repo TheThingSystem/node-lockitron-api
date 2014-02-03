@@ -1,17 +1,17 @@
 {
-  "name"           : "lockitron"
-, "version"        : "0.1.0"
-, "description"    : "node.js module for the Lockitron "
+  "name"           : "lockitron-api"
+, "version"        : "0.2.0"
+, "description"    : "A node.js module to interface with the for the Lockitron cloud API "
 , "author": {
     "name"           : "Marshall Rose"
   , "email"          : "mrose17@gmail.com"
   }
 , "repository": {
     "type"         : "git",
-    "url"          : "https://github.com/TheThingSystem/node-lockitron.git"
+    "url"          : "https://github.com/TheThingSystem/node-lockitron-api.git"
   } 
 , "bugs"           : {
-    "url"          : "https://github.com/TheThingSystem/node-lockitron/issues"
+    "url"          : "https://github.com/TheThingSystem/node-lockitron-api/issues"
   }
 , "keywords"       : [ "Lockitron" ]
 , "main"           : "./lockitron.js"
