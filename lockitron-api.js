@@ -1,100 +1,158 @@
+// a node.js module to interface with the Lockitron cloud API
+//   cf., https://api.lockitron.com/
+
 var events      = require('events')
-  , https       = require('https')
-  , querystring = require('querystring')
-  , url         = require('url')
+  , oauth       = require('oauth')
   , util        = require('util')
   ;
 
-var DEFAULT_CONFIG = { client_id    : ''
-                     , access_token : ''
-                     };
 
-var DEFAULT_LOGGER = { error   : function(msg, props) { console.log(msg); if (!!props) console.trace(props.exception); }
+var DEFAULT_LOGGER = { error   : function(msg, props) { console.log(msg); if (!!props) console.log(props);             }
                      , warning : function(msg, props) { console.log(msg); if (!!props) console.log(props);             }
                      , notice  : function(msg, props) { console.log(msg); if (!!props) console.log(props);             }
                      , info    : function(msg, props) { console.log(msg); if (!!props) console.log(props);             }
                      , debug   : function(msg, props) { console.log(msg); if (!!props) console.log(props);             }
                      };
 
-var Lockitron = function() {
+
+var LockitronAPI = function(options) {
   var k;
 
-  if (!(this instanceof Lockitron)) return new Lockitron();
-
-  this.devices = null;
-  this.config = {};
-  for (k in DEFAULT_CONFIG) if (DEFAULT_CONFIG.hasOwnProperty(k)) this.config[k] = DEFAULT_CONFIG[k];
-  this.logger = DEFAULT_LOGGER;
-};
-util.inherits(Lockitron, events.EventEmitter);
-
-Lockitron.prototype.setConfig = function(clientID, accessToken) {
-  this.config.client_id = clientID;
-  this.config.access_token = accessToken;
-
-  return this;
-};
-
-Lockitron.prototype.getDevices = function(callback) {
   var self = this;
 
-  return this.invoke('v1/locks', self.config, null, callback);
-};
+  if (!(self instanceof LockitronAPI)) return new LockitronAPI(options);
 
-Lockitron.prototype.setDevice = function(deviceID, properties, callback) {
-  var self = this;
+  self.options = options;
+  if ((!self.options.clientID) || (!self.options.clientSecret)) throw new Error('clientID and clientSecret required');
 
-  if (typeof properties === 'function') {
-    callback = properties;
-    properties = null;
+  self.logger = self.options.logger  || {};
+  for (k in DEFAULT_LOGGER) {
+    if ((DEFAULT_LOGGER.hasOwnProperty(k)) && (typeof self.logger[k] === 'undefined'))  self.logger[k] = DEFAULT_LOGGER[k];
   }
 
-  if (!properties) properties = { status: 'lock' };
-  if (!callback) callback = function(err, results) { if (err) self.logger.error(err.message); else self.logger.info(results); };
+  self.oauth2 = new oauth.OAuth2(self.options.clientID, self.options.clientSecret, 'https://api.lockitron.com',
+                                 '/v1/oauth/authorize', '/v1/oauth/token');
+};
+util.inherits(LockitronAPI, events.EventEmitter);
 
-  return this.invoke('v1/locks/' + deviceID + '/' + (properties.status || 'lock'), null, 
-                     querystring.stringify({ access_token: self.config.access_token }), callback);
+
+LockitronAPI.prototype.setState = function(state) {
+  var self = this;
+
+  self.state = state;
+
+  return self;
 };
 
-Lockitron.prototype.invoke = function(path, get, post, callback) {
-  var options, self;
+LockitronAPI.prototype.authenticateURL = function(redirectURL) {
+  var params;
 
-  self = this;
+  var self = this;
 
-  if (!callback) callback = function(err, results) { if (err) self.logger.error(err.message); else self.logger.info(results); };
+  self.redirectURL = redirectURL
+  params = { response_type : 'code'
+           , redirect_uri  : redirectURL
+           };
 
-  options = url.parse('https://api.lockitron.com/' + path + ((!!get) ? ('?' + querystring.stringify(get)) : ''));
-  options.method = (!!post) ? 'POST' : 'GET';
-  options.headers = { Accept: 'application/json' };
-  https.request(options, function(response) {
-    var content = ''
-      , err     = null;
+  return self.oauth2.getAuthorizeUrl(params);
+};
 
-    if (response.statusCode != 200) {
-      err = new Error('server returned HTTP status code ' + response.statusCode);
-      self.logger.error('https', { exception: err });
-      return callback(err, null);
+
+LockitronAPI.prototype.authorize = function(code, state, callback) {
+  var self = this;
+
+  if (typeof callback !== 'function') throw new Error('callback is mandatory for login');
+
+  self.oauth2.getOAuthAccessToken(code, { grant_type: 'authorization_code', redirect_uri: self.redirectURL },
+                                  function (err, accessToken, refreshToken, results) {
+    var json;
+
+    if (!!err) {
+      if ((!err.message) && (!!err.data)) {
+        try { json = JSON.parse(err.data); err = new Error(err.statusCode + ': ' + json.error_description); } catch(ex) {}
+      }
+      return callback(err);
     }
 
-    response.setEncoding('utf8');
-    response.on('data', function(chunk) {
-      content += chunk.toString();
-    }).on('end', function() {
-      var results;
+    if (!!results.expires_in) self.expiresAt = new Date().getTime() + (results.expires_in * 1000);
 
-      try { results = JSON.parse(content); } catch(ex) {
-        self.logger.error('json', { exception: ex });
-        return callback(ex, null);
-      }
-      callback(null, results);
-    }).on('close', function() {
-    self.logger.error('https', { exception: new Error('premature EOF') });
-    });
-  }).on('error', function(err) {
-    self.logger.error('https', { exception: err });
-  }).end(post);
+    self.state = { accessToken  : accessToken
+                 , refreshToken : refreshToken
+                 , expiresAt    : self.expiresAt
+                 };
 
-  return this;
+    callback(null, self.state);
+  });
+
+  return self;
 };
 
-exports.Lockitron = Lockitron;
+
+LockitronAPI.prototype.roundtrip = function(method, path, json, callback) {
+  var self = this;
+
+  if ((!callback) && (typeof json === 'function')) {
+    callback = json;
+    json = null;
+  }
+
+  return self.invoke(method, path, json, function(err, code, results) {
+    callback(err, results);
+  });
+};
+
+LockitronAPI.prototype.invoke = function(method, path, json, callback) {
+  var headers;
+
+  var self = this;
+
+  if ((!callback) && (typeof json === 'function')) {
+    callback = json;
+    json = null;
+  }
+  if (!callback) {
+    callback = function(err, results) {
+      if (!!err) self.logger.error('invoke', { exception: err }); else self.logger.info(path, { results: results });
+    };
+  }
+
+  var f = function(oops, body, response) {
+      var expected = { GET    : [ 200 ]
+                     , PUT    : [ 200 ]
+                     , POST   : [ 200, 201, 202 ]
+                     , DELETE : [ 200 ]
+                     }[method];
+
+      var results = {};
+
+      if (!!oops) return callback(new Error(oops.data), oops.statusCode);
+
+      try { results = JSON.parse(body); } catch(ex) {
+        self.logger.error(path, { event: 'json', diagnostic: ex.message, body: body });
+        return callback(ex, response.statusCode);
+      }
+
+      if (expected.indexOf(response.statusCode) === -1) {
+         self.logger.error(path, { event: 'https', code: response.statusCode, body: body });
+         return callback(new Error('HTTP response ' + response.statusCode), response.statusCode, results);
+      }
+
+      callback(null, response.statusCode, results);
+
+  };
+
+  if (method !== 'GET') {
+    headers = { Authorization: self.oauth2.buildAuthHeader(self.state.accessToken) };
+    if (!!json) {
+      headers['Content-Type'] = 'application/json';
+      headers['Content-Length'] = json.length;
+    }
+
+    self.oauth2._request(method, 'https://api.lockitron.com/v1' + path, headers, json, null, f);
+  } else self.oauth2._request(method, 'https://api.lockitron.com/v1' + path, {}, '', self.state.accessToken, f);
+
+  return self;
+};
+
+
+exports.LockitronAPI = LockitronAPI;
