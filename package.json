@@ -1,6 +1,6 @@
 {
   "name"           : "lockitron-api"
-, "version"        : "0.3.0"
+, "version"        : "0.3.1"
 , "description"    : "A node.js module to interface with the for the Lockitron cloud API "
 , "author": {
     "name"           : "Marshall Rose"
@@ -21,7 +21,7 @@
   , "speakeasy"    : "git://github.com/TheThingSystem/speakeasy.git"
   }
 , "keywords"       : [ "Lockitron" ]
-, "main"           : "./lockitron.js"
+, "main"           : "./lockitron-api.js"
 , "engines": {
     "node"         : ">=0.8"
   }
