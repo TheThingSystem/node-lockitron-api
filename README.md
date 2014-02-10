@@ -147,7 +147,17 @@ the code fragment below assumes that 'ipaddr' and 'portno.external' will map to 
       }).on('clientError', function(err, socket) {/* jshint unused: false */
         console.log('http error: ' + err.message);
       }).on('end', function() {
-// TBD: webhook API not yet defined
+        var data;
+
+        var loser = function (message) {
+          response.writeHead(200, { 'content-type': 'text/plain; charset=utf8', 'content-length' : message.length });
+          response.end(message);
+        };
+
+        try { data = JSON.parse(body); } catch(ex) { return loser(ex.message); }
+
+        // now process data.type
+        console.log(util.inspect(data, { depth: null }));
       });
     };
 

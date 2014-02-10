@@ -32,9 +32,6 @@ moira.getIP(function(ipaddr, service) {/* jshint unused: false */
 
       parts = url.parse(request.url, true);
       if (!!parts.query.code) {
-        if (!parts.query.state) return console.log('invalid response from server');
-
-        client = clients[parts.query.state];
         if (!client) return console.log('cross-site request forgery suspected');
 
         client.authorize(parts.query.code, parts.query.state, function(err, user, state) {
@@ -56,7 +53,6 @@ moira.getIP(function(ipaddr, service) {/* jshint unused: false */
 
       requestURL = client.authenticateURL(null, 'http://' + ipaddr + ':' + portno.external + '/');
       parts = url.parse(requestURL, true);
-      clients[parts.query.state] = client;
 
       response.writeHead(307, { location: requestURL, 'content-length' : 0 });
       response.end();
@@ -84,7 +80,14 @@ var webhook = function (request, response) {
   }).on('clientError', function(err, socket) {/* jshint unused: false */
     console.log('http error: ' + err.message);
   }).on('end', function() {
-// TBD: webhook API not yet defined
+    var data;
+
+    var loser = function (message) {
+      response.writeHead(200, { 'content-type': 'text/plain; charset=utf8', 'content-length' : message.length });
+      response.end(message);
+    };
+
+    try { data = JSON.parse(body); } catch(ex) { return loser(ex.message); }
   });
 };
 

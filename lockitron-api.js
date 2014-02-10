@@ -49,7 +49,7 @@ LockitronAPI.prototype.authenticateURL = function(redirectURL) {
 
   var self = this;
 
-  self.redirectURL = redirectURL
+  self.redirectURL = redirectURL;
   params = { response_type : 'code'
            , redirect_uri  : redirectURL
            };
