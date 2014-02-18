@@ -13,6 +13,8 @@ You will need an Lockitron account with developer access:
 
 - Once you have API access, go to the [Developer site](https://api.lockitron.com) and  login.
 
+- If you are not taken to the Applications page, click [here](https://api.lockitron.com/v1/oauth/applications).
+
 - Enter a redirect URL and an activity webhook URI.
 and click on 'New Application'
 
