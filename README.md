@@ -119,7 +119,7 @@ the code fragment below assumes that 'ipaddr' and 'portno.external' will map to 
         });
 
         // in practice, should give the user a nice "thank you!" screen...
-        response.writeHead(200, {'content-length' : 0 });
+        response.writeHead(200, { 'content-length' : 0 });
         return response.end();
       });
     }).listen(portno.local, function() {
